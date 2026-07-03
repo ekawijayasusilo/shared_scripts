@@ -1,0 +1,25 @@
+default_platform(:android)
+
+platform :android do
+  desc "Run unit tests"
+  lane :test do
+    gradle(task: "testDebugUnitTest")
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    gradle(task: "clean")
+  end
+
+  desc "Assemble release APK"
+  lane :build_release do
+    gradle(task: "clean")
+    gradle(task: "assembleRelease")
+  end
+
+  desc "Build release AAB for Play Store"
+  lane :bundle_release do
+    gradle(task: "clean")
+    gradle(task: "bundleRelease")
+  end
+end
