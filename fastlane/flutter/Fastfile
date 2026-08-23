@@ -1,0 +1,133 @@
+default_platform(:flutter)
+
+# `flutter` is not one of fastlane's official platforms (:ios, :mac, :android).
+# SupportedPlatforms.verify! only warns, but declaring it here keeps that warning
+# off every run.
+Fastlane::SupportedPlatforms.extra = [:flutter]
+
+# ---------------------------------------------------------------------------
+# Flutter helpers
+#
+# These live in the Fastfile rather than a separate .rb because import_from_git
+# checks out only the Fastfile and its sibling actions/ directory — a helper file
+# would simply not exist on the consumer side.
+# ---------------------------------------------------------------------------
+
+require 'yaml'
+require 'shellwords'
+
+# Ruby in a lane body runs in <consumer>/fastlane; the `sh` action runs one level
+# up, in the project root. Anything reading files from Ruby needs this.
+def flutter_root
+  File.expand_path('..', FastlaneCore::FastlaneFolder.path)
+end
+
+def flutter_pubspec(dir)
+  YAML.load_file(File.join(flutter_root, dir, 'pubspec.yaml'))
+end
+
+# The root `workspace:` key is the single source of truth for which packages
+# exist, so adding a package to the consumer needs no change here.
+def flutter_packages
+  ['.'] + Array(flutter_pubspec('.')['workspace'])
+end
+
+def flutter_dep?(dir, name, dev: false)
+  key = dev ? 'dev_dependencies' : 'dependencies'
+  (flutter_pubspec(dir)[key] || {}).key?(name)
+end
+
+def flutter_dir_exist?(relative_path)
+  Dir.exist?(File.join(flutter_root, relative_path))
+end
+
+def widgetbook_package
+  flutter_packages.find { |dir| flutter_dep?(dir, 'widgetbook') } ||
+    UI.user_error!("No workspace package depends on `widgetbook`. Pass path:<dir> to override.")
+end
+
+# `sh` already runs in the project root, so package paths stay relative.
+def in_package(dir, command)
+  sh("cd #{dir.shellescape} && #{command}")
+end
+
+def flavor_flag(options)
+  options[:flavor] ? " --flavor #{options[:flavor].to_s.shellescape}" : ""
+end
+
+platform :flutter do
+  desc "Clean, re-resolve dependencies and re-run code generation"
+  lane :clean_gen do
+    packages = flutter_packages
+    packages.each { |dir| in_package(dir, "flutter clean") }
+
+    # One `pub get` at the workspace root resolves every member into a single
+    # shared .dart_tool/package_config.json.
+    sh("flutter pub get")
+
+    # build_runner has no usable workspace mode here: --workspace is experimental
+    # and build_runner is not a root dev_dependency, so a root invocation would
+    # not resolve. Loop, skipping packages that do not declare it.
+    packages.each do |dir|
+      next unless flutter_dep?(dir, 'build_runner', dev: true)
+      in_package(dir, "dart run build_runner build --delete-conflicting-outputs")
+    end
+  end
+
+  desc "Run all tests with coverage across every workspace package"
+  lane :test do |options|
+    # --recursive walks every package and exits 0 on packages with no test/ dir.
+    command = "very_good test --recursive --coverage"
+    command += " --min-coverage #{options[:min_coverage].to_s.shellescape}" if options[:min_coverage]
+    sh(command)
+  end
+
+  desc "Format check, analyzer, bloc lint and dart_code_linter across every package"
+  lane :analyze do
+    packages = flutter_packages
+
+    # dart format takes many paths in one invocation. Use each package's lib/ and
+    # test/ rather than the package roots, which nest inside each other.
+    format_paths = packages
+                   .flat_map { |dir| %w[lib test].map { |sub| File.join(dir, sub) } }
+                   .select { |path| flutter_dir_exist?(path) }
+                   .map(&:shellescape)
+    sh("dart format --output=none --set-exit-if-changed #{format_paths.join(' ')}")
+
+    # `flutter analyze` has no recursive mode.
+    packages.each { |dir| in_package(dir, "flutter analyze") }
+
+    # `bloc lint <dir>` walks subdirectories, so one root invocation covers all.
+    sh("bloc lint .")
+
+    # dart_code_linter has no recursive mode either.
+    packages.each { |dir| in_package(dir, "dart run dart_code_linter:metrics analyze lib") }
+  end
+
+  desc "Regenerate localizations from l10n.yaml"
+  lane :l10n do
+    sh("flutter gen-l10n")
+  end
+
+  desc "Build a release APK. Signed with the debug keystore until signing is wired up"
+  lane :build_apk do |options|
+    sh("flutter build apk --release#{flavor_flag(options)}")
+  end
+
+  desc "Build a release App Bundle. Signed with the debug keystore until signing is wired up"
+  lane :build_aab do |options|
+    sh("flutter build appbundle --release#{flavor_flag(options)}")
+  end
+
+  desc "Build an unsigned iOS archive. Produces Runner.xcarchive, not an .ipa"
+  lane :build_ipa do |options|
+    sh("flutter build ipa --release --no-codesign#{flavor_flag(options)}")
+  end
+
+  desc "Regenerate and run the widgetbook catalog on Chrome"
+  lane :widgetbook do |options|
+    dir = options[:path] || widgetbook_package
+    in_package(dir, "dart run build_runner build --delete-conflicting-outputs")
+    in_package(dir, "flutter run -d chrome")
+  end
+end
