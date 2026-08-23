@@ -327,7 +327,7 @@ else
   say "This wizard never creates an App and never writes a private key."
   say "That is a one-time, account-wide job. Run the owner bootstrap first:"
   note "  curl -fsSL -o bootstrap-owner.sh \\"
-  note "    https://raw.githubusercontent.com/ekawijayasusilo/shared_scripts/<TAG>/scripts/bootstrap-owner.sh"
+  note "    https://raw.githubusercontent.com/ekawijayasusilo/shared_scripts/v1.1.0/scripts/bootstrap-owner.sh" # x-release-please-version
   note "  less bootstrap-owner.sh"
   note "  bash bootstrap-owner.sh"
   printf '\n'
