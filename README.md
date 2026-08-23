@@ -20,6 +20,7 @@ gem "fastlane"
 One Fastfile per stack, so a consumer imports only what it needs. In your
 `fastlane/Fastfile`, pick the matching `path:`:
 
+<!-- x-release-please-start-version -->
 ```ruby
 # Native Android project
 import_from_git(
@@ -37,6 +38,7 @@ import_from_git(
   path: "fastlane/flutter/Fastfile"
 )
 ```
+<!-- x-release-please-end -->
 
 Then `bundle install` and `bundle exec fastlane test`.
 
@@ -123,6 +125,7 @@ Both need an authenticated [`gh`](https://cli.github.com) and bash 4+ (macOS shi
 Fetch to disk, **read it**, then run. Not `curl | bash` — these handle a GitHub App private key and
 API tokens, so the script must be reviewable before it executes.
 
+<!-- x-release-please-start-version -->
 ```bash
 curl -fsSL -o setup-repo.sh \
   https://raw.githubusercontent.com/ekawijayasusilo/shared_scripts/v1.1.0/scripts/setup-repo.sh
@@ -132,6 +135,7 @@ bash setup-repo.sh
 
 Tags are mutable — anyone with push access can move `v1.1.0`. Substitute a full commit SHA for the
 tag in that URL when you want true immutability.
+<!-- x-release-please-end -->
 
 ### `setup-repo.sh` is two-phase and resumable
 
