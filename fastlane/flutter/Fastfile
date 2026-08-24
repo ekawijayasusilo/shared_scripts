@@ -101,7 +101,7 @@ platform :flutter do
     sh("bloc lint .")
 
     # dart_code_linter has no recursive mode either.
-    packages.each { |dir| in_package(dir, "dart run dart_code_linter:metrics analyze lib") }
+    packages.each { |dir| in_package(dir, "dart run dart_code_linter:metrics analyze lib --fatal-style --fatal-performance --set-exit-on-violation-level=warning") }
   end
 
   desc "Regenerate localizations from l10n.yaml"
