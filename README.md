@@ -25,7 +25,7 @@ One Fastfile per stack, so a consumer imports only what it needs. In your
 # Native Android project
 import_from_git(
   url: "https://github.com/ekawijayasusilo/shared_scripts.git",
-  branch: "v1.1.0",              # a tag name is fine here — git clones it detached
+  branch: "v1.1.1",              # a tag name is fine here — git clones it detached
   path: "fastlane/android/Fastfile"
 )
 ```
@@ -34,7 +34,7 @@ import_from_git(
 # Flutter project
 import_from_git(
   url: "https://github.com/ekawijayasusilo/shared_scripts.git",
-  branch: "v1.1.0",
+  branch: "v1.1.1",
   path: "fastlane/flutter/Fastfile"
 )
 ```
@@ -128,12 +128,12 @@ API tokens, so the script must be reviewable before it executes.
 <!-- x-release-please-start-version -->
 ```bash
 curl -fsSL -o setup-repo.sh \
-  https://raw.githubusercontent.com/ekawijayasusilo/shared_scripts/v1.1.0/scripts/setup-repo.sh
+  https://raw.githubusercontent.com/ekawijayasusilo/shared_scripts/v1.1.1/scripts/setup-repo.sh
 less setup-repo.sh
 bash setup-repo.sh
 ```
 
-Tags are mutable — anyone with push access can move `v1.1.0`. Substitute a full commit SHA for the
+Tags are mutable — anyone with push access can move `v1.1.1`. Substitute a full commit SHA for the
 tag in that URL when you want true immutability.
 <!-- x-release-please-end -->
 
